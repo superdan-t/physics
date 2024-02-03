@@ -17,7 +17,6 @@ struct WindowContext {
 
 /// Create a window and GL context with GLFW
 fn create_window() -> WindowContext {
-
     // Window/GL Context Settings
     let num_samples = 0;
     let stencil_bits = 8;
@@ -32,7 +31,8 @@ fn create_window() -> WindowContext {
     glfw.window_hint(WindowHint::StencilBits(Some(stencil_bits)));
     glfw.window_hint(WindowHint::Resizable(false));
 
-    let (mut window, events) = glfw.create_window(x_size, y_size, title, glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw
+        .create_window(x_size, y_size, title, glfw::WindowMode::Windowed)
         .expect("Failed to create GLFW window.");
 
     window.make_current();
@@ -56,7 +56,10 @@ fn create_skia_context() -> skia_safe::gpu::DirectContext {
 }
 
 // Create a Skia surface to cover a window
-fn create_skia_surface(window_context: &WindowContext, context: &mut skia_safe::gpu::RecordingContext) -> skia_safe::Surface {
+fn create_skia_surface(
+    window_context: &WindowContext,
+    context: &mut skia_safe::gpu::RecordingContext,
+) -> skia_safe::Surface {
     let fb_info = {
         let mut fboid: GLint = 0;
         unsafe { gl::GetIntegerv(gl::FRAMEBUFFER_BINDING, &mut fboid) };
@@ -82,9 +85,9 @@ fn create_skia_surface(window_context: &WindowContext, context: &mut skia_safe::
         skia_safe::ColorType::RGBA8888,
         None,
         None,
-    ).unwrap()
+    )
+    .unwrap()
 }
-    
 
 fn main() {
     let mut window_context = create_window();
@@ -107,9 +110,7 @@ fn main() {
 
 fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
     match event {
-        WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-            window.set_should_close(true)
-        }
+        WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
         _ => {}
     }
 }
