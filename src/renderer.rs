@@ -4,10 +4,10 @@ extern crate gl;
 extern crate skia_safe;
 
 use gl::types::*;
-use skia_safe::gpu::{gl as skia_gl, RecordingContext};
-use skia_safe::{gpu, gpu::DirectContext, Surface};
+use skia_safe::gpu::{gl as skia_gl, DirectContext, RecordingContext};
+use skia_safe::{gpu, Surface};
 
-use crate::model::Circle;
+use crate::model::{primitive::*, Primitive};
 
 /// A renderer that can draw 2D models
 ///
@@ -29,8 +29,19 @@ pub trait Renderer {
      *	Primitive shapes
      */
 
+    /// Draw a primitive shape
+    fn draw_primitive(&mut self, primitive: &Primitive) {
+        match primitive {
+            Primitive::Circle(circle) => self.draw_circle(circle),
+            Primitive::Rectangle(rectangle) => self.draw_rectangle(rectangle),
+        }
+    }
+
     /// Primitive shape
     fn draw_circle(&mut self, circle: &Circle);
+
+    /// Primitive shape
+    fn draw_rectangle(&mut self, rectangle: &Rectangle);
 }
 
 /// Properties of a GL surface
@@ -94,8 +105,24 @@ impl Renderer for SkiaRenderer {
 
     fn draw_circle(&mut self, circle: &Circle) {
         let canvas = self.surface.canvas();
-        let paint = skia_safe::Paint::new(skia_safe::Color4f::new(1.0, 1.0, 1.0, 1.0), None);
+        let mut paint = skia_safe::Paint::default();
+        paint.set_color(circle.color);
         canvas.draw_circle(circle.origin, circle.radius, &paint);
+    }
+
+    fn draw_rectangle(&mut self, rectangle: &Rectangle) {
+        let canvas = self.surface.canvas();
+        let mut paint = skia_safe::Paint::default();
+        paint.set_color(rectangle.color);
+        canvas.draw_rect(
+            skia_safe::Rect::from_xywh(
+                rectangle.origin.0,
+                rectangle.origin.1,
+                rectangle.dimensions.0,
+                rectangle.dimensions.1,
+            ),
+            &paint,
+        );
     }
 }
 

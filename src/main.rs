@@ -7,10 +7,12 @@ pub mod renderer;
 pub mod simulation;
 
 use glfw::{Action, Context, Glfw, Key, WindowEvent, WindowHint};
+use skia_safe::Color;
 
+use model::primitive::*;
 use renderer::Renderer;
 use renderer::SkiaRenderer;
-use simulation::{Object, Simulation};
+use simulation::Simulation;
 
 struct WindowContext {
     glfw: Glfw,
@@ -70,13 +72,25 @@ fn main() {
 
     let mut simulation = Simulation::new();
 
-    simulation.add_object(Object {
-        graphics_model: model::Circle {
-            origin: (25.0, 25.0),
+    // Draw a background rectangle
+    simulation.add_object_with_model(
+        Rectangle {
+            origin: (0.0, 0.0),
+            dimensions: (100.0, 100.0),
+            color: Color::from_rgb(8, 0, 22),
+        }
+        .into(),
+    );
+
+    // Add a fun circle
+    simulation.add_object_with_model(
+        Circle {
+            origin: (50.0, 25.0),
             radius: 2.0,
-        },
-        id: 0,
-    });
+            color: Color::WHITE,
+        }
+        .into(),
+    );
 
     while !window_context.window.should_close() {
         window_context.glfw.poll_events();

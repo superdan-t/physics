@@ -1,18 +1,23 @@
 use std::vec::Vec;
 
-use crate::model;
+use crate::model::Primitive;
 use crate::renderer;
 
-/// An object in the 2D simulation. All objects are circles for now.
+/// An object in the 2D simulation
 pub struct Object {
-    pub graphics_model: model::Circle,
+    pub graphics_model: Primitive,
     pub id: u32,
 }
 
 /// The root controller of the 2D simulation
 pub struct Simulation {
+    /// A list of all objects in the simulation.
+    ///
+    /// Vector for now but as models get more complex we may want to avoid the overhead of dynamic resizing.
     objects: Vec<Object>,
-    object_counter: u32,
+
+    /// A counter for unique object IDs. Hopefully this will never overflow...
+    object_uid_counter: u32,
 }
 
 impl Simulation {
@@ -20,16 +25,18 @@ impl Simulation {
     pub fn new() -> Simulation {
         Simulation {
             objects: Vec::new(),
-            object_counter: 0,
+            object_uid_counter: 0,
         }
     }
 
-    /// Add an object to the simulation
-    pub fn add_object(&mut self, object: Object) {
-        self.objects.push(object);
+    pub fn add_object_with_model(&mut self, model: Primitive) -> u32 {
+        self.objects.push(Object {
+            graphics_model: model,
+            id: self.object_uid_counter,
+        });
+        self.object_uid_counter += 1;
 
-        self.objects.last_mut().unwrap().id = self.object_counter;
-        self.object_counter += 1;
+        self.object_uid_counter - 1
     }
 
     /// Remove an object from the simulation
@@ -40,7 +47,7 @@ impl Simulation {
     /// Draw all elements in the simulation
     pub fn draw_all<Renderer: renderer::Renderer>(&mut self, renderer: &mut Renderer) {
         for object in &self.objects {
-            renderer.draw_circle(&object.graphics_model);
+            renderer.draw_primitive(&object.graphics_model);
         }
     }
 }
