@@ -10,25 +10,17 @@ pub struct Object {
 }
 
 /// The root controller of the 2D simulation
-pub struct Simulation<DrawStrategy>
-where
-    DrawStrategy: renderer::Renderer,
-{
+pub struct Simulation {
     objects: Vec<Object>,
     object_counter: u32,
-    draw_strategy: DrawStrategy,
 }
 
-impl<DrawStrategy> Simulation<DrawStrategy>
-where
-    DrawStrategy: renderer::Renderer,
-{
+impl Simulation {
     /// Create a new simulation
-    pub fn new(draw_strategy: DrawStrategy) -> Simulation<DrawStrategy> {
+    pub fn new() -> Simulation {
         Simulation {
             objects: Vec::new(),
             object_counter: 0,
-            draw_strategy,
         }
     }
 
@@ -46,10 +38,9 @@ where
     }
 
     /// Draw all elements in the simulation
-    pub fn draw(&mut self) {
-        self.draw_strategy.clear();
+    pub fn draw_all<Renderer: renderer::Renderer>(&mut self, renderer: &mut Renderer) {
         for object in &self.objects {
-            self.draw_strategy.draw_circle(&object.graphics_model);
+            renderer.draw_circle(&object.graphics_model);
         }
     }
 }

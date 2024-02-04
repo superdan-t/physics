@@ -1,30 +1,55 @@
 //! Renders 2D models to a surface
 
+extern crate gl;
 extern crate skia_safe;
+
+use gl::types::*;
+use skia_safe::gpu::{gl as skia_gl, RecordingContext};
+use skia_safe::{gpu, gpu::DirectContext, Surface};
 
 use crate::model::Circle;
 
 /// A renderer that can draw 2D models
+///
+/// Renderers draw objects in a region of the physics simulation to a surface. All objects models consist of a set of primitive shapes.
 pub trait Renderer {
-    // Procedures
-
     /// Selects the region of the physics simulation to draw and fit it to the surface
     fn set_physics_region(&mut self, p1: (f32, f32), p2: (f32, f32));
 
-    /// Clear the surface
-    fn clear(&mut self);
+    /// Resize the surface
+    fn resize_surface(&mut self, dimensions: (i32, i32));
 
-    // Primitive shapes
+    /// Prepare to draw a new frame
+    fn begin_new_frame(&mut self);
 
+    /// Complete the current frame
+    fn end_frame(&mut self);
+
+    /*
+     *	Primitive shapes
+     */
+
+    /// Primitive shape
     fn draw_circle(&mut self, circle: &Circle);
 }
 
-/// A draw strategy that uses Skia to draw to a surface
-pub struct SkiaRenderer<'a> {
-    pub surface: &'a mut skia_safe::Surface,
+/// Properties of a GL surface
+#[derive(Clone, Copy)]
+pub struct SurfaceProperties {
+    pub dimensions: (i32, i32),
+    pub num_samples: u32,
+    pub stencil_bits: u32,
 }
 
-impl Renderer for SkiaRenderer<'_> {
+/// A draw strategy that uses Skia to draw to a surface
+pub struct SkiaRenderer {
+    context: DirectContext,
+    surface: Surface,
+
+    surface_properties: SurfaceProperties,
+}
+
+impl Renderer for SkiaRenderer {
     fn set_physics_region(&mut self, p1: (f32, f32), p2: (f32, f32)) {
         // Get the surface dimensions as f32
         let surface_width_f = self.surface.width() as f32;
@@ -54,9 +79,17 @@ impl Renderer for SkiaRenderer<'_> {
         );
     }
 
-    fn clear(&mut self) {
-        let canvas = self.surface.canvas();
-        canvas.clear(skia_safe::Color::BLACK);
+    fn resize_surface(&mut self, dimensions: (i32, i32)) {
+        self.surface_properties.dimensions = dimensions;
+        self.surface = Self::create_surface(&mut self.context, &self.surface_properties);
+    }
+
+    fn begin_new_frame(&mut self) {
+        self.surface.canvas().clear(skia_safe::Color::BLACK);
+    }
+
+    fn end_frame(&mut self) {
+        self.context.flush_and_submit();
     }
 
     fn draw_circle(&mut self, circle: &Circle) {
@@ -66,8 +99,51 @@ impl Renderer for SkiaRenderer<'_> {
     }
 }
 
-impl SkiaRenderer<'_> {
-    pub fn new(surface: &mut skia_safe::Surface) -> SkiaRenderer {
-        SkiaRenderer { surface }
+impl SkiaRenderer {
+    pub fn new(properties: &SurfaceProperties) -> SkiaRenderer {
+        let interface = skia_gl::Interface::new_native().unwrap();
+        let mut context = DirectContext::new_gl(Some(interface), None).unwrap();
+
+        let surface = Self::create_surface(&mut context, properties);
+
+        SkiaRenderer {
+            context,
+            surface,
+            surface_properties: *properties,
+        }
+    }
+
+    /// Create a new surface
+    fn create_surface(
+        context: &mut RecordingContext,
+        properties: &SurfaceProperties,
+    ) -> skia_safe::Surface {
+        let fb_info = {
+            let mut fboid: GLint = 0;
+            unsafe { gl::GetIntegerv(gl::FRAMEBUFFER_BINDING, &mut fboid) };
+
+            skia_gl::FramebufferInfo {
+                fboid: fboid.try_into().unwrap(),
+                format: skia_gl::Format::RGBA8.into(),
+                ..Default::default()
+            }
+        };
+
+        let backend_render_target = gpu::backend_render_targets::make_gl(
+            properties.dimensions,
+            properties.num_samples as usize,
+            properties.stencil_bits as usize,
+            fb_info,
+        );
+
+        skia_safe::gpu::surfaces::wrap_backend_render_target(
+            context,
+            &backend_render_target,
+            gpu::SurfaceOrigin::BottomLeft,
+            skia_safe::ColorType::RGBA8888,
+            None,
+            None,
+        )
+        .unwrap()
     }
 }

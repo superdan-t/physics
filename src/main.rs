@@ -6,7 +6,6 @@ pub mod model;
 pub mod renderer;
 pub mod simulation;
 
-use gl::types::*;
 use glfw::{Action, Context, Glfw, Key, WindowEvent, WindowHint};
 
 use renderer::Renderer;
@@ -57,54 +56,19 @@ fn create_window() -> WindowContext {
     }
 }
 
-fn create_skia_context() -> skia_safe::gpu::DirectContext {
-    let interface = skia_safe::gpu::gl::Interface::new_native().unwrap();
-    skia_safe::gpu::DirectContext::new_gl(Some(interface), None).unwrap()
-}
-
-// Create a Skia surface to cover a window
-fn create_skia_surface(
-    window_context: &WindowContext,
-    context: &mut skia_safe::gpu::RecordingContext,
-) -> skia_safe::Surface {
-    let fb_info = {
-        let mut fboid: GLint = 0;
-        unsafe { gl::GetIntegerv(gl::FRAMEBUFFER_BINDING, &mut fboid) };
-
-        skia_safe::gpu::gl::FramebufferInfo {
-            fboid: fboid.try_into().unwrap(),
-            format: skia_safe::gpu::gl::Format::RGBA8.into(),
-            ..Default::default()
-        }
-    };
-
-    let backend_render_target = skia_safe::gpu::backend_render_targets::make_gl(
-        window_context.window.get_size(),
-        window_context.samples as usize,
-        window_context.stencil_bits as usize,
-        fb_info,
-    );
-
-    skia_safe::gpu::surfaces::wrap_backend_render_target(
-        context,
-        &backend_render_target,
-        skia_safe::gpu::SurfaceOrigin::BottomLeft,
-        skia_safe::ColorType::RGBA8888,
-        None,
-        None,
-    )
-    .unwrap()
-}
-
 fn main() {
     let mut window_context = create_window();
-    let mut skia_ctx = create_skia_context();
-    let mut surface = create_skia_surface(&window_context, &mut skia_ctx);
 
-    let mut renderer = SkiaRenderer::new(&mut surface);
+    let context_properties = renderer::SurfaceProperties {
+        dimensions: window_context.window.get_size(),
+        num_samples: window_context.samples,
+        stencil_bits: window_context.stencil_bits,
+    };
+    let mut renderer = SkiaRenderer::new(&context_properties);
+
     renderer.set_physics_region((0.0, 0.0), (100.0, 100.0));
 
-    let mut simulation = Simulation::new(renderer);
+    let mut simulation = Simulation::new();
 
     simulation.add_object(Object {
         graphics_model: model::Circle {
@@ -119,10 +83,11 @@ fn main() {
         for (_, event) in glfw::flush_messages(&window_context.event_receiver) {
             handle_window_event(&mut window_context.window, event);
         }
+        renderer.begin_new_frame();
 
-        simulation.draw();
+        simulation.draw_all(&mut renderer);
 
-        skia_ctx.flush_and_submit();
+        renderer.end_frame();
         window_context.window.swap_buffers();
     }
 }
