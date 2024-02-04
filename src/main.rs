@@ -2,9 +2,16 @@ extern crate gl;
 extern crate glfw;
 extern crate skia_safe;
 
+pub mod model;
+pub mod renderer;
+pub mod simulation;
+
 use gl::types::*;
 use glfw::{Action, Context, Glfw, Key, WindowEvent, WindowHint};
-use skia_safe::Color;
+
+use renderer::Renderer;
+use renderer::SkiaRenderer;
+use simulation::{Object, Simulation};
 
 struct WindowContext {
     glfw: Glfw,
@@ -94,14 +101,26 @@ fn main() {
     let mut skia_ctx = create_skia_context();
     let mut surface = create_skia_surface(&window_context, &mut skia_ctx);
 
+    let mut renderer = SkiaRenderer::new(&mut surface);
+    renderer.set_physics_region((0.0, 0.0), (100.0, 100.0));
+
+    let mut simulation = Simulation::new(renderer);
+
+    simulation.add_object(Object {
+        graphics_model: model::Circle {
+            origin: (25.0, 25.0),
+            radius: 2.0,
+        },
+        id: 0,
+    });
+
     while !window_context.window.should_close() {
         window_context.glfw.poll_events();
         for (_, event) in glfw::flush_messages(&window_context.event_receiver) {
             handle_window_event(&mut window_context.window, event);
         }
 
-        let canvas = surface.canvas();
-        canvas.clear(Color::MAGENTA);
+        simulation.draw();
 
         skia_ctx.flush_and_submit();
         window_context.window.swap_buffers();
