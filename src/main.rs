@@ -86,10 +86,26 @@ fn main() {
         .into(),
     );
 
-    // Add a fun circle
+    // Add circles in an L shape to verify the canvas is flipped correctly
     simulation.add_object_with_model(
         Circle {
-            origin: (50.0, 50.0),
+            origin: (25.0, 25.0),
+            radius: 2.0,
+            color: Color::WHITE,
+        }
+        .into(),
+    );
+    simulation.add_object_with_model(
+        Circle {
+            origin: (25.0, 75.0),
+            radius: 2.0,
+            color: Color::WHITE,
+        }
+        .into(),
+    );
+    simulation.add_object_with_model(
+        Circle {
+            origin: (50.0, 25.0),
             radius: 2.0,
             color: Color::WHITE,
         }
@@ -123,6 +139,21 @@ fn handle_window_event(
     match event {
         WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
 
+        // Zoom controls
+        WindowEvent::Key(Key::Kp9, _, Action::Press, _) => {
+            simulation.inputs.view_region_zoom_speed = 1.0
+        }
+        WindowEvent::Key(Key::Kp7, _, Action::Press, _) => {
+            simulation.inputs.view_region_zoom_speed = -1.0
+        }
+
+        WindowEvent::Key(Key::Kp9, _, Action::Release, _) => {
+            simulation.inputs.view_region_zoom_speed = 0.0
+        }
+        WindowEvent::Key(Key::Kp7, _, Action::Release, _) => {
+            simulation.inputs.view_region_zoom_speed = 0.0
+        }
+
         // Begin scrolling
         WindowEvent::Key(Key::Kp4, _, Action::Press, _) => {
             simulation.inputs.view_region_scroll_speed.0 = -1.0
@@ -131,10 +162,10 @@ fn handle_window_event(
             simulation.inputs.view_region_scroll_speed.0 = 1.0
         }
         WindowEvent::Key(Key::Kp8, _, Action::Press, _) => {
-            simulation.inputs.view_region_scroll_speed.1 = -1.0
+            simulation.inputs.view_region_scroll_speed.1 = 1.0
         }
         WindowEvent::Key(Key::Kp2, _, Action::Press, _) => {
-            simulation.inputs.view_region_scroll_speed.1 = 1.0
+            simulation.inputs.view_region_scroll_speed.1 = -1.0
         }
 
         // End scrolling

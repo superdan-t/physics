@@ -73,6 +73,10 @@ impl Renderer for SkiaRenderer {
         let canvas = self.surface.canvas();
         canvas.reset_matrix();
 
+        // Flip the y-axis to match the physics coordinate system
+        canvas.scale((1.0, -1.0));
+        canvas.translate((0.0, -surface_height_f));
+
         // Scale the desired region to the surface dimensions
         canvas.scale((
             surface_width_f / (p2.0 - p1.0),
@@ -81,10 +85,6 @@ impl Renderer for SkiaRenderer {
 
         // Translate the canvas to use the origin of the physics region
         canvas.translate((-p1.0, -p1.1));
-
-        // Flip the canvas vertically to match the physics coordinate system
-        canvas.scale((1.0, -1.0));
-        canvas.translate((0.0, -(p2.1 - p1.1)));
 
         self.view_region = (p1, p2);
     }

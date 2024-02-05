@@ -86,6 +86,26 @@ where
             p2.0 += delta_x;
             p2.1 += delta_y;
 
+            // The zoom speed is how much the view region should change per second. See the exponential function below.
+            let z_speed = self.inputs.view_region_zoom_speed
+                * delta_time.as_secs_f32()
+                * self.inputs.view_region_zoom_speed_multiplier;
+
+            // Convert the zoom speed to a scale factor using an exponential function with a base of 2
+            // With a base of 2, this function causes the zoom to double with each positive unit of zoom speed and halve with each unit of negative zoom speed
+            // Then, take the reciprocal of the scale factor to determine how much each dimension changes (positive zoom -> smaller region, ...)
+            let delta_size = 1.0 / 2_f32.powf(z_speed);
+
+            // Calculate the center of the view region
+            let center = ((p1.0 + p2.0) / 2.0, (p1.1 + p2.1) / 2.0);
+
+            // Scale the view region around the center
+            p1.0 = center.0 + (p1.0 - center.0) * delta_size; // x1
+            p1.1 = center.1 + (p1.1 - center.1) * delta_size; // y1
+
+            p2.0 = center.0 + (p2.0 - center.0) * delta_size; // x2
+            p2.1 = center.1 + (p2.1 - center.1) * delta_size; // y2
+
             self.renderer.set_physics_region(p1, p2);
         }
     }
