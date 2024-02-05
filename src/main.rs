@@ -32,7 +32,7 @@ fn create_window() -> WindowContext {
     let stencil_bits = 8;
     let x_size = 1024;
     let y_size = 1024;
-    let title = "Hello, Skia!";
+    let title = "Physics Simulation";
 
     let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
