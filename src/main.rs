@@ -6,6 +6,8 @@ pub mod model;
 pub mod renderer;
 pub mod simulation;
 
+use std::time::Instant;
+
 use glfw::{Action, Context, Glfw, Key, WindowEvent, WindowHint};
 use skia_safe::Color;
 
@@ -70,7 +72,9 @@ fn main() {
 
     renderer.set_physics_region((0.0, 0.0), (100.0, 100.0));
 
-    let mut simulation = Simulation::new();
+    let mut simulation = Simulation::new(renderer);
+
+    simulation.inputs.view_region_scroll_speed_multiplier = 50.0;
 
     // Draw a background rectangle
     simulation.add_object_with_model(
@@ -85,30 +89,68 @@ fn main() {
     // Add a fun circle
     simulation.add_object_with_model(
         Circle {
-            origin: (50.0, 25.0),
+            origin: (50.0, 50.0),
             radius: 2.0,
             color: Color::WHITE,
         }
         .into(),
     );
 
+    let mut last_frame_time = Instant::now();
+
     while !window_context.window.should_close() {
         window_context.glfw.poll_events();
         for (_, event) in glfw::flush_messages(&window_context.event_receiver) {
-            handle_window_event(&mut window_context.window, event);
+            handle_window_event(&mut window_context.window, event, &mut simulation);
         }
-        renderer.begin_new_frame();
 
-        simulation.draw_all(&mut renderer);
+        let delta_time = last_frame_time.elapsed();
+        last_frame_time = Instant::now();
 
-        renderer.end_frame();
+        simulation.update(delta_time);
+
+        simulation.next_frame();
+
         window_context.window.swap_buffers();
     }
 }
 
-fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
+fn handle_window_event(
+    window: &mut glfw::Window,
+    event: glfw::WindowEvent,
+    simulation: &mut Simulation<SkiaRenderer>,
+) {
     match event {
         WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
+
+        // Begin scrolling
+        WindowEvent::Key(Key::Kp4, _, Action::Press, _) => {
+            simulation.inputs.view_region_scroll_speed.0 = -1.0
+        }
+        WindowEvent::Key(Key::Kp6, _, Action::Press, _) => {
+            simulation.inputs.view_region_scroll_speed.0 = 1.0
+        }
+        WindowEvent::Key(Key::Kp8, _, Action::Press, _) => {
+            simulation.inputs.view_region_scroll_speed.1 = -1.0
+        }
+        WindowEvent::Key(Key::Kp2, _, Action::Press, _) => {
+            simulation.inputs.view_region_scroll_speed.1 = 1.0
+        }
+
+        // End scrolling
+        WindowEvent::Key(Key::Kp4, _, Action::Release, _) => {
+            simulation.inputs.view_region_scroll_speed.0 = 0.0
+        }
+        WindowEvent::Key(Key::Kp6, _, Action::Release, _) => {
+            simulation.inputs.view_region_scroll_speed.0 = 0.0
+        }
+        WindowEvent::Key(Key::Kp8, _, Action::Release, _) => {
+            simulation.inputs.view_region_scroll_speed.1 = 0.0
+        }
+        WindowEvent::Key(Key::Kp2, _, Action::Release, _) => {
+            simulation.inputs.view_region_scroll_speed.1 = 0.0
+        }
+
         _ => {}
     }
 }

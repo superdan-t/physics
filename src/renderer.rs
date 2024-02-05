@@ -16,6 +16,8 @@ pub trait Renderer {
     /// Selects the region of the physics simulation to draw and fit it to the surface
     fn set_physics_region(&mut self, p1: (f32, f32), p2: (f32, f32));
 
+    fn get_physics_view_region(&self) -> ((f32, f32), (f32, f32));
+
     /// Resize the surface
     fn resize_surface(&mut self, dimensions: (i32, i32));
 
@@ -58,6 +60,8 @@ pub struct SkiaRenderer {
     surface: Surface,
 
     surface_properties: SurfaceProperties,
+
+    view_region: ((f32, f32), (f32, f32)),
 }
 
 impl Renderer for SkiaRenderer {
@@ -69,25 +73,24 @@ impl Renderer for SkiaRenderer {
         let canvas = self.surface.canvas();
         canvas.reset_matrix();
 
-        // Translate the canvas to use the origin of the physics region
-        canvas.translate((-p1.0, -p1.1));
-
         // Scale the desired region to the surface dimensions
         canvas.scale((
             surface_width_f / (p2.0 - p1.0),
             surface_height_f / (p2.1 - p1.1),
         ));
 
+        // Translate the canvas to use the origin of the physics region
+        canvas.translate((-p1.0, -p1.1));
+
         // Flip the canvas vertically to match the physics coordinate system
         canvas.scale((1.0, -1.0));
         canvas.translate((0.0, -(p2.1 - p1.1)));
 
-        // Set the clip region to the desired region
-        canvas.clip_rect(
-            skia_safe::Rect::from_wh(surface_width_f, surface_height_f),
-            skia_safe::ClipOp::Intersect,
-            true,
-        );
+        self.view_region = (p1, p2);
+    }
+
+    fn get_physics_view_region(&self) -> ((f32, f32), (f32, f32)) {
+        self.view_region
     }
 
     fn resize_surface(&mut self, dimensions: (i32, i32)) {
@@ -132,12 +135,18 @@ impl SkiaRenderer {
         let mut context = DirectContext::new_gl(Some(interface), None).unwrap();
 
         let surface = Self::create_surface(&mut context, properties);
+        let surface_dims = (surface.width() as f32, surface.height() as f32);
 
-        SkiaRenderer {
+        let mut new_renderer = SkiaRenderer {
             context,
             surface,
             surface_properties: *properties,
-        }
+            view_region: ((0.0, 0.0), (0.0, 0.0)),
+        };
+
+        new_renderer.set_physics_region((0.0, 0.0), surface_dims);
+
+        new_renderer
     }
 
     /// Create a new surface
