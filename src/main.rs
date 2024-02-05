@@ -151,6 +151,15 @@ fn handle_window_event(
             simulation.inputs.view_region_scroll_speed.1 = 0.0
         }
 
+        // Scroll controls
+
+        // Reset the view
+        WindowEvent::Key(Key::Kp5, _, Action::Release, _) => {
+            simulation
+                .renderer
+                .set_physics_region((0.0, 0.0), (100.0, 100.0));
+        }
+
         _ => {}
     }
 }
