@@ -4,6 +4,8 @@ pub mod primitive {
 
     use skia_safe::Color;
 
+    use crate::physics::Motion;
+
     /// A circle with a center origin
     pub struct Circle {
         pub origin: (f32, f32),
@@ -16,6 +18,32 @@ pub mod primitive {
         pub origin: (f32, f32),
         pub dimensions: (f32, f32),
         pub color: Color,
+    }
+
+    impl Circle {
+        pub fn with_motion(&self, motion: &Motion) -> Circle {
+            Circle {
+                origin: (
+                    self.origin.0 + motion.position.0,
+                    self.origin.1 + motion.position.1,
+                ),
+                radius: self.radius,
+                color: self.color,
+            }
+        }
+    }
+
+    impl Rectangle {
+        pub fn with_motion(&self, motion: &Motion) -> Rectangle {
+            Rectangle {
+                origin: (
+                    self.origin.0 + motion.position.0,
+                    self.origin.1 + motion.position.1,
+                ),
+                dimensions: self.dimensions,
+                color: self.color,
+            }
+        }
     }
 }
 

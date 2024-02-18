@@ -8,6 +8,7 @@ use skia_safe::gpu::{gl as skia_gl, DirectContext, RecordingContext};
 use skia_safe::{gpu, Surface};
 
 use crate::model::{primitive::*, Primitive};
+use crate::physics::Motion;
 
 /// A renderer that can draw 2D models
 ///
@@ -36,6 +37,14 @@ pub trait Renderer {
         match primitive {
             Primitive::Circle(circle) => self.draw_circle(circle),
             Primitive::Rectangle(rectangle) => self.draw_rectangle(rectangle),
+        }
+    }
+
+    /// Draw a primitive shape with a motion
+    fn draw_primitive_with_motion(&mut self, primitive: &Primitive, motion: &Motion) {
+        match primitive {
+            Primitive::Circle(circle) => self.draw_circle(&circle.with_motion(motion)),
+            Primitive::Rectangle(rectangle) => self.draw_rectangle(&rectangle.with_motion(motion)),
         }
     }
 

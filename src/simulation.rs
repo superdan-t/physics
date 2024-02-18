@@ -5,11 +5,13 @@ use std::time::Duration;
 use std::vec::Vec;
 
 use crate::model::Primitive;
+use crate::physics::{BodyId, Circle, PhysicsEngine};
 use crate::renderer;
 
 /// An object in the 2D simulation
 pub struct Object {
     pub graphics_model: Primitive,
+    pub physics_body: BodyId,
     pub id: u32,
 }
 
@@ -47,6 +49,8 @@ pub struct Simulation<Renderer: renderer::Renderer> {
 
     pub renderer: Renderer,
 
+    pub physics: PhysicsEngine,
+
     pub inputs: Inputs,
 }
 
@@ -61,6 +65,7 @@ where
             object_uid_counter: 0,
             dt_accum: 0.0,
             renderer,
+            physics: PhysicsEngine::new(),
             inputs: Inputs::default(),
         }
     }
@@ -108,16 +113,48 @@ where
 
             self.renderer.set_physics_region(p1, p2);
         }
+
+        self.physics.update(delta_time);
     }
 
-    pub fn add_object_with_model(&mut self, model: Primitive) -> u32 {
+    pub fn add_object_with_model_at_pos(
+        &mut self,
+        model: Primitive,
+        position: (f32, f32),
+    ) -> &mut Object {
+        // Create a physics model for circles only for now
+        let body = match &model {
+            Primitive::Circle(circle) => self.physics.add_object(Circle {
+                origin: (0.0, 0.0),
+                radius: circle.radius,
+            }),
+            Primitive::Rectangle(rectangle) => {
+                // Create the largest possible circle that fits inside the rectangle
+                // The origin of the rectangle model is the bottom-left corner
+                self.physics.add_object(Circle {
+                    origin: (
+                        rectangle.origin.0 + rectangle.dimensions.0 / 2.0,
+                        rectangle.origin.1 + rectangle.dimensions.1 / 2.0,
+                    ),
+                    radius: (rectangle.dimensions.0 / 2.0).min(rectangle.dimensions.1 / 2.0),
+                })
+            }
+        };
+
+        body.motion.position = position;
+
         self.objects.push(Object {
             graphics_model: model,
+            physics_body: body.id,
             id: self.object_uid_counter,
         });
         self.object_uid_counter += 1;
 
-        self.object_uid_counter - 1
+        self.objects.last_mut().unwrap()
+    }
+
+    pub fn add_object_with_model(&mut self, model: Primitive) -> &mut Object {
+        self.add_object_with_model_at_pos(model, (0.0, 0.0))
     }
 
     /// Remove an object from the simulation
@@ -128,7 +165,10 @@ where
     /// Draw all elements in the simulation
     pub fn draw_all(&mut self) {
         for object in &self.objects {
-            self.renderer.draw_primitive(&object.graphics_model);
+            self.renderer.draw_primitive_with_motion(
+                &object.graphics_model,
+                &self.physics.get_object(object.physics_body).unwrap().motion,
+            );
         }
     }
 

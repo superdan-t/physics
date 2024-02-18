@@ -3,6 +3,7 @@ extern crate glfw;
 extern crate skia_safe;
 
 pub mod model;
+pub mod physics;
 pub mod renderer;
 pub mod simulation;
 
@@ -87,30 +88,42 @@ fn main() {
     );
 
     // Add circles in an L shape to verify the canvas is flipped correctly
-    simulation.add_object_with_model(
+    let d1_body = simulation
+        .add_object_with_model_at_pos(
+            Circle {
+                origin: (0.0, 0.0),
+                radius: 2.0,
+                color: Color::WHITE,
+            }
+            .into(),
+            (25.0, 25.0),
+        )
+        .physics_body;
+    simulation.add_object_with_model_at_pos(
         Circle {
-            origin: (25.0, 25.0),
+            origin: (0.0, 0.0),
             radius: 2.0,
             color: Color::WHITE,
         }
         .into(),
+        (25.0, 75.0),
     );
-    simulation.add_object_with_model(
+    simulation.add_object_with_model_at_pos(
         Circle {
-            origin: (25.0, 75.0),
+            origin: (0.0, 0.0),
             radius: 2.0,
             color: Color::WHITE,
         }
         .into(),
+        (50.0, 25.0),
     );
-    simulation.add_object_with_model(
-        Circle {
-            origin: (50.0, 25.0),
-            radius: 2.0,
-            color: Color::WHITE,
-        }
-        .into(),
-    );
+
+    simulation
+        .physics
+        .get_object_mut(d1_body)
+        .unwrap()
+        .motion
+        .velocity = (0.0, 1.0);
 
     let mut last_frame_time = Instant::now();
 
