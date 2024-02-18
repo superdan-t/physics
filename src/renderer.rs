@@ -8,7 +8,7 @@ use skia_safe::gpu::{gl as skia_gl, DirectContext, RecordingContext};
 use skia_safe::{gpu, Surface};
 
 use crate::model::{primitive::*, Primitive};
-use crate::physics::Motion;
+use crate::physics::Pose;
 
 /// A renderer that can draw 2D models
 ///
@@ -33,26 +33,18 @@ pub trait Renderer {
      */
 
     /// Draw a primitive shape
-    fn draw_primitive(&mut self, primitive: &Primitive) {
+    fn draw_primitive(&mut self, primitive: &Primitive, pose: &Pose) {
         match primitive {
-            Primitive::Circle(circle) => self.draw_circle(circle),
-            Primitive::Rectangle(rectangle) => self.draw_rectangle(rectangle),
-        }
-    }
-
-    /// Draw a primitive shape with a motion
-    fn draw_primitive_with_motion(&mut self, primitive: &Primitive, motion: &Motion) {
-        match primitive {
-            Primitive::Circle(circle) => self.draw_circle(&circle.with_motion(motion)),
-            Primitive::Rectangle(rectangle) => self.draw_rectangle(&rectangle.with_motion(motion)),
+            Primitive::Circle(circle) => self.draw_circle(circle, pose),
+            Primitive::Rectangle(rectangle) => self.draw_rectangle(rectangle, pose),
         }
     }
 
     /// Primitive shape
-    fn draw_circle(&mut self, circle: &Circle);
+    fn draw_circle(&mut self, circle: &Circle, pose: &Pose);
 
     /// Primitive shape
-    fn draw_rectangle(&mut self, rectangle: &Rectangle);
+    fn draw_rectangle(&mut self, rectangle: &Rectangle, pose: &Pose);
 }
 
 /// Properties of a GL surface
@@ -115,21 +107,29 @@ impl Renderer for SkiaRenderer {
         self.context.flush_and_submit();
     }
 
-    fn draw_circle(&mut self, circle: &Circle) {
+    fn draw_circle(&mut self, circle: &Circle, pose: &Pose) {
         let canvas = self.surface.canvas();
         let mut paint = skia_safe::Paint::default();
         paint.set_color(circle.color);
-        canvas.draw_circle(circle.origin, circle.radius, &paint);
+
+        canvas.draw_circle(
+            (
+                circle.origin.0 + pose.position.0,
+                circle.origin.1 + pose.position.1,
+            ),
+            circle.radius,
+            &paint,
+        );
     }
 
-    fn draw_rectangle(&mut self, rectangle: &Rectangle) {
+    fn draw_rectangle(&mut self, rectangle: &Rectangle, pose: &Pose) {
         let canvas = self.surface.canvas();
         let mut paint = skia_safe::Paint::default();
         paint.set_color(rectangle.color);
         canvas.draw_rect(
             skia_safe::Rect::from_xywh(
-                rectangle.origin.0,
-                rectangle.origin.1,
+                rectangle.origin.0 + pose.position.0,
+                rectangle.origin.1 + pose.position.1,
                 rectangle.dimensions.0,
                 rectangle.dimensions.1,
             ),

@@ -122,7 +122,7 @@ fn main() {
         .physics
         .get_object_mut(d1_body)
         .unwrap()
-        .motion
+        .dynamics
         .velocity = (0.0, 1.0);
 
     let mut last_frame_time = Instant::now();

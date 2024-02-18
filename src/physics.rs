@@ -2,9 +2,16 @@
 
 use std::time::Duration;
 
+/// A position and orientation in 2D space
 #[derive(Default)]
-pub struct Motion {
+pub struct Pose {
     pub position: (f32, f32),
+    pub orientation: f32,
+}
+
+/// Movement properties of a physical object
+#[derive(Default)]
+pub struct Dynamics {
     pub velocity: (f32, f32),
 }
 
@@ -25,8 +32,10 @@ pub struct BodyId(usize);
 /// Bodies in the simulation represent physical objects that can move and collide. Typically a game object will have a graphics model and a physics body.
 pub struct Body {
     pub id: BodyId,
+    pub pose: Pose,
+    pub dynamics: Dynamics,
+
     pub circle: Circle,
-    pub motion: Motion,
 }
 
 /// The root of the physics engine
@@ -56,8 +65,9 @@ impl PhysicsEngine {
     pub fn add_object(&mut self, circle: Circle) -> &mut Body {
         self.objects.push(Body {
             id: BodyId(self.objects.len()),
+            pose: Pose::default(),
+            dynamics: Dynamics::default(),
             circle,
-            motion: Motion::default(),
         });
         self.objects.last_mut().unwrap()
     }
@@ -65,8 +75,8 @@ impl PhysicsEngine {
     /// Update the physics engine state
     pub fn update(&mut self, dt: Duration) {
         for object in self.objects.iter_mut() {
-            object.motion.position.0 += object.motion.velocity.0 * dt.as_secs_f32();
-            object.motion.position.1 += object.motion.velocity.1 * dt.as_secs_f32();
+            object.pose.position.0 += object.dynamics.velocity.0 * dt.as_secs_f32();
+            object.pose.position.1 += object.dynamics.velocity.1 * dt.as_secs_f32();
         }
     }
 }

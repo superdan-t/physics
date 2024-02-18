@@ -141,7 +141,7 @@ where
             }
         };
 
-        body.motion.position = position;
+        body.pose.position = position;
 
         self.objects.push(Object {
             graphics_model: model,
@@ -165,9 +165,9 @@ where
     /// Draw all elements in the simulation
     pub fn draw_all(&mut self) {
         for object in &self.objects {
-            self.renderer.draw_primitive_with_motion(
+            self.renderer.draw_primitive(
                 &object.graphics_model,
-                &self.physics.get_object(object.physics_body).unwrap().motion,
+                &self.physics.get_object(object.physics_body).unwrap().pose,
             );
         }
     }
